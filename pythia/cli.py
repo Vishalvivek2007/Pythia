@@ -15,7 +15,7 @@ from .parser import parse
 from .typecheck import typecheck
 from .lower import lower
 from .optimize import elide_guards
-from .emit_c import emit
+from .emit_cpp import emit
 from .lexer import LexError
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -58,7 +58,7 @@ def main(argv=None) -> int:
     ap.add_argument("-o", "--out", help="output .c path")
     ap.add_argument("--fidelity", action="store_true",
                     help="print the Semantic Fidelity Report")
-    ap.add_argument("--build", action="store_true", help="compile with cc")
+    ap.add_argument("--build", action="store_true", help="compile with c++17")
     ap.add_argument("--run", action="store_true", help="compile and execute")
     ap.add_argument("--emit-only", action="store_true", help="print C to stdout")
     a = ap.parse_args(argv)
@@ -77,7 +77,7 @@ def main(argv=None) -> int:
     stem = os.path.splitext(os.path.basename(a.source))[0]
     outdir = os.path.dirname(a.out) if a.out else os.path.join("build", stem)
     os.makedirs(outdir or ".", exist_ok=True)
-    cpath = a.out or os.path.join(outdir, stem + ".c")
+    cpath = a.out or os.path.join(outdir, stem + ".cpp")
     with open(cpath, "w", encoding="utf-8") as f:
         f.write(code)
 
@@ -98,15 +98,15 @@ def main(argv=None) -> int:
             print()
 
     if a.build or a.run:
-        for fn in ("pyrt.c", "pyrt.h"):
+        for fn in ("pyrt.cpp", "pyrt.hpp"):
             shutil.copy(os.path.join(RUNTIME, fn), outdir)
         binpath = os.path.join(outdir, stem)
-        cc = ["cc", "-std=gnu11", "-O2", "-flto", "-I", outdir, cpath,
-              os.path.join(outdir, "pyrt.c"), "-o", binpath, "-lm"]
+        cc = ["c++", "-std=c++17", "-O2", "-flto", "-I", outdir, cpath,
+              os.path.join(outdir, "pyrt.cpp"), "-o", binpath]
         r = subprocess.run(cc, capture_output=True, text=True)
         if r.returncode != 0:
             print(r.stderr, file=sys.stderr)
-            print("internal error: generated C failed to compile", file=sys.stderr)
+            print("internal error: generated C++ failed to compile", file=sys.stderr)
             return 3
         if a.run:
             return subprocess.run([binpath]).returncode
