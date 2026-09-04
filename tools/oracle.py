@@ -61,14 +61,14 @@ def build_and_run(path, keep=False):
     code, notes, errs, _ = compile_source(src, path)
     if errs:
         return None, None, None, None, errs, notes
-    cpath = os.path.join(d, stem + ".c")
+    cpath = os.path.join(d, stem + ".cpp")
     open(cpath, "w", encoding="utf-8").write(code)
-    for fn in ("pyrt.c", "pyrt.h"):
+    for fn in ("pyrt.cpp", "pyrt.hpp"):
         shutil.copy(os.path.join(RUNTIME, fn), d)
     binp = os.path.join(d, stem)
     cc = subprocess.run(
-        ["cc", "-std=gnu11", "-O2", "-flto", "-Wall", "-I", d, cpath,
-         os.path.join(d, "pyrt.c"), "-o", binp, "-lm"],
+        ["c++", "-std=c++17", "-O2", "-flto", "-Wall", "-I", d, cpath,
+         os.path.join(d, "pyrt.cpp"), "-o", binp],
         capture_output=True, text=True)
     if cc.returncode != 0:
         return None, None, None, None, [("cc", cc.stderr)], notes
@@ -158,7 +158,7 @@ def main():
     os.makedirs(BUILD, exist_ok=True)
 
     print("=" * 68)
-    print("PYTHIA DIFFERENTIAL ORACLE   (CPython 3.12  vs  PYTHIA -> C -> cc -O2)")
+    print("PYTHIA DIFFERENTIAL ORACLE   (CPython 3.12  vs  PYTHIA -> C++17 -> c++ -O2)")
     print("=" * 68)
 
     pp, pf, pn, speeds, notes = run_positive(a.verbose)
