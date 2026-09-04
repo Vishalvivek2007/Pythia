@@ -1,0 +1,56 @@
+(* PySub v0.1 -- the statically typed Python subset accepted by PYTHIA *)
+(* BCSE307L Team 2 / Project A15.  Owner: Member 1 (Vishal Vivek).          *)
+
+module      = { NEWLINE | funcdef | statement } EOF ;
+
+funcdef     = "def" NAME "(" [ params ] ")" [ "->" type ] ":" block ;
+params      = param { "," param } ;
+param       = NAME ":" type ;
+type        = "int" | "float" | "bool" | "str" | "None"
+            | "list" "[" type "]" ;
+
+block       = NEWLINE INDENT statement { statement } DEDENT ;
+
+statement   = if_stmt | while_stmt | for_stmt | simple_stmt
+            | "return" [ expr ] NEWLINE
+            | "pass" NEWLINE | "break" NEWLINE | "continue" NEWLINE ;
+
+if_stmt     = "if" expr ":" block { "elif" expr ":" block } [ "else" ":" block ] ;
+while_stmt  = "while" expr ":" block ;
+for_stmt    = "for" NAME "in" ( range_call | expr ) ":" block ;
+range_call  = "range" "(" expr [ "," expr [ "," expr ] ] ")" ;
+
+simple_stmt = annassign | assign | augassign | exprstmt ;
+annassign   = NAME ":" type "=" expr NEWLINE ;
+assign      = target "=" expr NEWLINE ;
+augassign   = target augop expr NEWLINE ;
+exprstmt    = expr NEWLINE ;
+target      = NAME | postfix "[" expr "]" ;
+augop       = "+=" | "-=" | "*=" | "/=" | "//=" | "%=" | "**=" ;
+
+(* Expressions are parsed by precedence climbing (Pratt).                    *)
+(* Binding powers, loosest to tightest:                                      *)
+(*   or(1) < and(2) < comparison(4) < +,-(6) < *,/,//,%(8) < **(12, right)   *)
+expr        = or_expr ;
+or_expr     = and_expr { "or" and_expr } ;
+and_expr    = comparison { "and" comparison } ;
+comparison  = sum [ ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) sum ] ;
+sum         = term { ( "+" | "-" ) term } ;
+term        = power { ( "*" | "/" | "//" | "%" ) power } ;
+power       = unary [ "**" power ] ;                     (* right associative *)
+unary       = ( "-" | "+" | "not" ) unary | postfix ;
+postfix     = atom { "[" expr "]" | "." NAME "(" [ arglist ] ")" } ;
+atom        = INT | FLOAT | STRING | "True" | "False" | "None"
+            | NAME [ "(" [ arglist ] ")" ]
+            | "(" expr ")"
+            | "[" [ expr { "," expr } ] "]" ;
+arglist     = expr { "," expr } ;
+
+(* Lexical layer.  INDENT / DEDENT are synthesised by the scanner from       *)
+(* leading whitespace (the off-side rule); blank and comment-only lines      *)
+(* carry no indentation meaning.  Implicit line joining applies inside       *)
+(* ( ) and [ ].                                                             *)
+NAME        = ( letter | "_" ) { letter | digit | "_" } ;
+INT         = digit { digit | "_" } ;
+FLOAT       = INT "." { digit } [ exponent ] | INT exponent ;
+STRING      = "'" { char } "'" | '"' { char } '"' ;

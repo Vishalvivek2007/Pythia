@@ -1,0 +1,397 @@
+PYTHIA – QUICK USER GUIDE Python (PySub) → C11 Transpiler VIT Vellore |
+BCSE307L Compiler Design | Team 2 | Project A15
+
+============================================================ 1. WHAT IS
+PYTHIA? ============================================================
+
+PYTHIA takes a program written in PySub (a statically typed subset of
+Python) and translates it into C11.
+
+Basic flow:
+
+    .py file
+       |
+       v
+     Lexer
+       |
+       v
+     Parser
+       |
+       v
+
+Type Checker | v Lowering | v C Emitter | v .c file | v C compiler | v
+executable
+
+IMPORTANT: PYTHIA does NOT support all of Python. Use only the PySub
+features listed in the project README.
+
+============================================================ 2.
+REQUIREMENTS
+============================================================
+
+You need:
+
+-   Python 3.10 or newer
+-   A C11 compiler such as GCC/Clang
+-   The PYTHIA project folder
+
+Windows: Use “python”, not “python3”, if “python –version” works.
+
+Check Python:
+
+    python --version
+
+Check GCC:
+
+    gcc --version
+
+============================================================ 3. WHERE TO
+WORK ============================================================
+
+Open VS Code and open the main “pythia” project folder.
+
+The terminal must be inside the project root.
+
+Example:
+
+    C:\Users\<your-name>\...\pythia>
+
+You should be able to see folders such as:
+
+    pythia/
+    runtime/
+    tests/
+    tools/
+    docs/
+
+============================================================ 4. CREATE A
+PYTHON INPUT FILE
+============================================================
+
+Create a file such as:
+
+    p1.py
+
+Example:
+
+    x: int = 10
+    y: int = 20
+
+    print(x + y)
+
+Save the file in the project root, or use the correct path to it.
+
+============================================================ 5. PYTHON →
+C (SHOW GENERATED C)
+============================================================
+
+Run:
+
+    python -m pythia.cli p1.py --emit-only
+
+This runs the PYTHIA compiler and generates/displays the C code.
+
+If you want to save the emitted C into a file on Windows, use:
+
+    cmd /c "python -m pythia.cli p1.py --emit-only > p1.c"
+
+Then open:
+
+    p1.c
+
+IMPORTANT WINDOWS NOTE: Do not use “python3” if Windows says Python was
+not found. Use “python”.
+
+Also, shell redirection can create a UTF-16 file in some PowerShell
+setups. Using “cmd /c” as shown above avoids that problem.
+
+============================================================ 6. BUILD
+THE GENERATED C MANUALLY
+============================================================
+
+The generated C normally includes:
+
+    #include "pyrt.h"
+
+The runtime files are inside:
+
+    runtime/
+
+Therefore GCC must be told where to find the runtime header and runtime
+implementation.
+
+Run:
+
+    gcc p1.c runtime/pyrt.c -Iruntime -o p1
+
+Then run the executable:
+
+    .\p1.exe
+
+Expected output for the example:
+
+    30
+
+What the GCC command means:
+
+    gcc
+        C compiler
+
+    p1.c
+        generated C program
+
+    runtime/pyrt.c
+        PYTHIA runtime implementation
+
+    -Iruntime
+        search the runtime/ folder for pyrt.h
+
+    -o p1
+        name the generated executable p1
+
+============================================================ 7. EASIER
+METHOD: BUILD AND RUN THROUGH PYTHIA
+============================================================
+
+Instead of manually compiling the C file, use:
+
+    python -m pythia.cli p1.py --run
+
+This lets PYTHIA perform the full process:
+
+    p1.py
+      |
+      v
+    PYTHIA
+      |
+      v
+    generated C
+      |
+      v
+    C11 compiler
+      |
+      v
+    executable
+      |
+      v
+    output
+
+For normal testing, this is the easiest command.
+
+============================================================ 8. TEST
+WITH THE PROJECT’S EXISTING EXAMPLES
+============================================================
+
+Before creating your own program, test a known project example.
+
+For example:
+
+    python -m pythia.cli tests/positive/t07_bubble.py --emit-only
+
+To build and run it:
+
+    python -m pythia.cli tests/positive/t07_bubble.py --run
+
+============================================================ 9. FIDELITY
+REPORT ============================================================
+
+To check for semantic differences between PySub/CPython behavior and the
+generated C behavior:
+
+    python -m pythia.cli tests/positive/t01_arith.py --fidelity
+
+The project calls these possible differences “divergence classes”
+(D1–D7).
+
+A transpiler should not silently approximate behavior. PYTHIA reports
+known semantic differences.
+
+============================================================ 10. RUN THE
+FULL DIFFERENTIAL TEST SUITE
+============================================================
+
+From the project root:
+
+    python tools/oracle.py
+
+This compares the behavior of the PySub program with the generated C
+program.
+
+It is the main project-wide correctness check.
+
+============================================================ 11. COMMON
+MISTAKES ============================================================
+
+MISTAKE 1: Typing:
+
+    python3 ...
+
+on Windows when only “python” is configured.
+
+FIX:
+
+    python ...
+
+------------------------------------------------------------------------
+
+MISTAKE 2: Typing:
+
+    python -m pythia.cli myprogram.py ...
+
+when the actual file is called p1.py.
+
+FIX:
+
+    python -m pythia.cli p1.py --emit-only
+
+------------------------------------------------------------------------
+
+MISTAKE 3: GCC says:
+
+    fatal error: pyrt.h: No such file or directory
+
+FIX:
+
+    gcc p1.c runtime/pyrt.c -Iruntime -o p1
+
+The runtime header is inside runtime/.
+
+------------------------------------------------------------------------
+
+MISTAKE 4: The C compiler reports many:
+
+    warning: null character(s) ignored
+
+This can happen if the generated p1.c was saved as UTF-16.
+
+FIX: Regenerate it using:
+
+    cmd /c "python -m pythia.cli p1.py --emit-only > p1.c"
+
+Then make sure VS Code shows UTF-8 in the bottom-right.
+
+------------------------------------------------------------------------
+
+MISTAKE 5: Trying to use unsupported normal Python.
+
+PYTHIA supports PySub, not full Python.
+
+Check the README for supported features.
+
+============================================================ 12. THE
+THREE COMMANDS TEAM MEMBERS SHOULD REMEMBER
+============================================================
+
+1.  CHECK PYTHON:
+
+    python –version
+
+2.  PYTHON → C:
+
+    python -m pythia.cli p1.py –emit-only
+
+3.  PYTHON → C → BUILD → RUN:
+
+    python -m pythia.cli p1.py –run
+
+If you specifically need an actual p1.c file:
+
+    cmd /c "python -m pythia.cli p1.py --emit-only > p1.c"
+
+============================================================ 13. SIMPLE
+DEMO FOR A PROJECT PRESENTATION
+============================================================
+
+Create:
+
+    demo.py
+
+with:
+
+    x: int = 10
+    y: int = 20
+    print(x + y)
+
+Then run:
+
+    python -m pythia.cli demo.py --emit-only
+
+Show the generated C.
+
+Then run:
+
+    python -m pythia.cli demo.py --run
+
+Expected output:
+
+    30
+
+Explain:
+
+    "PYTHIA first lexes and parses the PySub source, type-checks it,
+     lowers it into an intermediate representation, emits C11, and
+     then the C compiler produces the native executable."
+
+============================================================ 14.
+IMPORTANT PROJECT FILES
+============================================================
+
+    pythia/lexer.py
+        Tokenization / indentation handling
+
+    pythia/parser.py
+        Parsing and AST construction
+
+    pythia/ast_nodes.py
+        AST/TAST definitions
+
+    pythia/typecheck.py
+        Static type checking
+
+    pythia/lower.py
+        Semantic lowering
+
+    pythia/emit_c.py
+        C11 code generation
+
+    runtime/pyrt.h
+        Runtime declarations used by generated C
+
+    runtime/pyrt.c
+        Runtime implementation
+
+    pythia/cli.py
+        Command-line driver
+
+    tools/oracle.py
+        Differential testing oracle
+
+============================================================ 15. QUICK
+CHEAT SHEET ============================================================
+
+FROM PROJECT ROOT:
+
+    python --version
+
+    python -m pythia.cli p1.py --emit-only
+
+    python -m pythia.cli p1.py --run
+
+    python -m pythia.cli p1.py --fidelity
+
+    python tools/oracle.py
+
+SAVE GENERATED C ON WINDOWS:
+
+    cmd /c "python -m pythia.cli p1.py --emit-only > p1.c"
+
+MANUALLY COMPILE GENERATED C:
+
+    gcc p1.c runtime/pyrt.c -Iruntime -o p1
+
+RUN:
+
+    .\p1.exe
+
+============================================================ END
+============================================================
